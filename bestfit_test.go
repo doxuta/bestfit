@@ -151,6 +151,24 @@ func TestLossy(t *testing.T) {
 	}
 }
 
+func TestASCIIKeyedRowIsApplied(t *testing.T) {
+	// Tables are consulted for every rune before it reaches the base encoding,
+	// so a row keyed by an ASCII rune overrides the base like any other row,
+	// and Lossy reports exactly the substitution the encoder makes.
+	e := bestfit.New(japanese.ShiftJIS, bestfit.Table{'~': "～"})
+	got, err := e.NewEncoder().Bytes([]byte("a~b"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []byte{'a', 0x81, 0x60, 'b'}; !bytes.Equal(got, want) {
+		t.Errorf("encode(%q) = % X, want % X", "a~b", got, want)
+	}
+	want := []bestfit.Loss{{Offset: 1, Rune: '~', To: "～"}}
+	if l := e.Lossy("a~b"); len(l) != 1 || l[0] != want[0] {
+		t.Errorf("Lossy(%q) = %+v, want %+v", "a~b", l, want)
+	}
+}
+
 func TestDecoderIsBase(t *testing.T) {
 	s, err := enc().NewDecoder().Bytes([]byte{0x81, 0x60})
 	if err != nil || string(s) != "～" {

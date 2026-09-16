@@ -146,8 +146,10 @@ e := bestfit.New(japanese.ShiftJIS, mine, cp932.JIS, cp932.Windows)
 - **Lossy by design.** The `JIS` rows change code points, not meaning. The
   `Windows` rows drop diacritics and merge symbols. Run `Lossy` first if the
   bytes go somewhere that matters, or use only the tier you accept.
-- **— U+2014, • U+2022 and … have no row**, because no vendor table has one
-  (Windows writes `?`). Add your own `Table` in front, as above.
+- **— U+2014 and • U+2022 have no row**, because no vendor table has one
+  (Windows writes `?`). Add your own `Table` in front, as above. … U+2026 needs
+  no row: x/text writes it as `81 63` in Shift_JIS and `A1 A6` in EUC-KR, the
+  same bytes `bestfit932.txt` and `bestfit949.txt` give it.
 - **Not a Windows emulation.** Windows writes `?` for 〜 and −; this package
   writes `81 60` and `81 7C`. If you need bytes identical to
   `WideCharToMultiByte`, use `cp932.Windows` alone.

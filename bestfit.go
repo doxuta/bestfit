@@ -108,7 +108,10 @@ func (t *encoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc int, err er
 		rep, repLen := "", 0
 		for i < len(src) {
 			r, size := utf8.DecodeRune(src[i:])
-			if s, ok := t.e.Lookup(r); ok && size > 1 { // size 1 with RuneError is a bad byte, left to the base
+			// RuneError of size 1 is a bad or truncated byte, left to the base;
+			// every other rune, ASCII included, is looked up.
+			bad := r == utf8.RuneError && size == 1
+			if s, ok := t.e.Lookup(r); ok && !bad {
 				rep, repLen = s, size
 				break
 			}
