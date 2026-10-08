@@ -182,7 +182,9 @@ func parseBestFit(data []byte) (mb map[int]int, wc []wcRow) {
 	for sc.Scan() {
 		line, comment, _ := strings.Cut(sc.Text(), ";")
 		f := strings.Fields(line)
-		if len(f) == 0 {
+		if len(f) == 0 || strings.Contains(comment, "Lead Byte Range") {
+			// The second DBCSRANGE row sits between two DBCSTABLE sections in
+			// bestfit932.txt; read as a table row it would overwrite 0x9FE0.
 			continue
 		}
 		switch f[0] {

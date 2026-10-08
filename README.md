@@ -88,8 +88,9 @@ and
 only the WCTABLE rows that do not round-trip. For 932 that is Latin-1 losing
 its diacritics (é→e, Æ→A, ©→c, ®→R, ¦→|). For 949 it is ₩→`5C` (Korean fonts
 draw the backslash cell as ₩, which is why the Korean keyboard's ₩ key types
-U+005C), ㈱→株, ©→ⓒ, 52 halfwidth/fullwidth forms, and Cyrillic and Greek
-lookalikes. These rows *lose information*; they are second in line after `JIS`
+U+005C), ㈱→株, ©→ⓒ, 52 halfwidth/fullwidth forms, 135 conjoining jamo
+(U+1100 ᄀ→ㄱ) and 18 CJK compatibility ideographs. These rows *lose
+information*; they are second in line after `JIS`
 and you can leave them out.
 
 `KSC5601.TXT` and `CP949.TXT` agree on every byte, so there is no Korean
@@ -129,7 +130,9 @@ for _, l := range cp932.Encoding.Lossy("café〜😀") {           // audit befo
 
 `cp932.Encoding` and `cp949.Encoding` are `encoding.Encoding`s, so they work
 with `transform.NewWriter`, `transform.NewReader` and everything else that
-takes one. Decoding is unchanged from x/text.
+takes one. `encoding.ReplaceUnsupported` and `encoding.HTMLEscapeUnsupported`
+wrap the encoder as they wrap x/text's own, for "best fit first, `?` for the
+rest". Decoding is unchanged from x/text.
 
 Tables are `map[rune]string` and are consulted in order, in front of the base
 encoding, so your own rows come first:
@@ -158,8 +161,9 @@ e := bestfit.New(japanese.ShiftJIS, mine, cp932.JIS, cp932.Windows)
 - **The base encoding must be stateless.** ISO-2022-JP switches modes between
   runs and would produce wrong escapes; it is not supported.
 - Tables are as of the unicode.org files on 2026-09-05. Rows x/text can
-  already write are dropped at generation time (one in `bestfit932.txt`: U+6E38
-  游, an IBM-extension duplicate).
+  already write would be dropped at generation time; there are none. (Until
+  2026-10-08 the generator reported one, U+6E38 游, because it read the second
+  `Lead Byte Range` line of `bestfit932.txt` as a table row for `9F E0`.)
 
 ## Tests
 
