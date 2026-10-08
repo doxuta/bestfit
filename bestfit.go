@@ -57,10 +57,21 @@ func (e *Encoding) NewEncoder() *encoding.Encoder {
 type UnsupportedError struct {
 	Rune   rune
 	Offset int
+	sub    byte // the base encoding's substitute byte, 0 when not set
 }
 
 func (e *UnsupportedError) Error() string {
 	return fmt.Sprintf("bestfit: %q (U+%04X) at byte %d is not in the encoding", e.Rune, e.Rune, e.Offset)
+}
+
+// Replacement is the base encoding's substitute byte for Rune. It is what
+// encoding.ReplaceUnsupported and encoding.HTMLEscapeUnsupported look for, so
+// they wrap this encoder as they wrap x/text's own.
+func (e *UnsupportedError) Replacement() byte {
+	if e.sub == 0 {
+		return encoding.ASCIISub
+	}
+	return e.sub
 }
 
 // Loss describes one rune of an input that will not be written as itself.
@@ -151,5 +162,5 @@ func (t *encoder) wrap(err error, src []byte, at int) error {
 	if r == utf8.RuneError && size < 2 {
 		return encoding.ErrInvalidUTF8
 	}
-	return &UnsupportedError{Rune: r, Offset: t.pos + at}
+	return &UnsupportedError{Rune: r, Offset: t.pos + at, sub: re.Replacement()}
 }
