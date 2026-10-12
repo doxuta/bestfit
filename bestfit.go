@@ -88,6 +88,9 @@ func (e *Encoding) Lossy(s string) []Loss {
 	enc := e.base.NewEncoder()
 	for i, r := range s {
 		if to, ok := e.Lookup(r); ok {
+			if _, err := enc.String(to); err != nil {
+				to = "" // the row's replacement is itself unwritable: the encoder refuses r
+			}
 			out = append(out, Loss{Offset: i, Rune: r, To: to})
 			continue
 		}
@@ -143,7 +146,10 @@ func (t *encoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc int, err er
 		}
 		nd, _, err := t.base.Transform(dst[nDst:], []byte(rep), true)
 		if err != nil {
-			return nDst, nSrc, err // ErrShortDst: the caller grows dst and retries from nSrc
+			// ErrShortDst passes through: the caller grows dst and retries from
+			// nSrc. A replacement the base refuses (a bad user row) is reported
+			// against the input rune at nSrc, like any other unwritable rune.
+			return nDst, nSrc, t.wrap(err, src, nSrc)
 		}
 		nDst += nd
 		nSrc += repLen
