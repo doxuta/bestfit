@@ -132,7 +132,9 @@ for _, l := range cp932.Encoding.Lossy("café〜😀") {           // audit befo
 with `transform.NewWriter`, `transform.NewReader` and everything else that
 takes one. `encoding.ReplaceUnsupported` and `encoding.HTMLEscapeUnsupported`
 wrap the encoder as they wrap x/text's own, for "best fit first, `?` for the
-rest". Decoding is unchanged from x/text.
+rest" — with one difference: invalid UTF-8 stays `encoding.ErrInvalidUTF8`
+here, where x/text's encoders let those wrappers write the substitute for each
+bad byte. Decoding is unchanged from x/text.
 
 Tables are `map[rune]string` and are consulted in order, in front of the base
 encoding, so your own rows come first:

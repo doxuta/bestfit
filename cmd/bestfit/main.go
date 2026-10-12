@@ -23,6 +23,10 @@ func main() {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+	if flag.NArg() != 1 {
+		flag.Usage()
+		os.Exit(2)
+	}
 	var enc *bestfit.Encoding
 	switch flag.Arg(0) {
 	case "cp932":
@@ -53,5 +57,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	os.Stdout.Write(out)
+	if _, err := os.Stdout.Write(out); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }
