@@ -2,7 +2,7 @@
 // writing fallback characters for the runes golang.org/x/text refuses.
 //
 //	bestfit cp932 < in.txt > out.txt
-//	bestfit -check cp932 < in.txt   # list what would change or fail
+//	bestfit -check cp932 < in.txt   # list what would change or fail; exit 1 on invalid UTF-8
 package main
 
 import (
@@ -43,12 +43,21 @@ func main() {
 		os.Exit(1)
 	}
 	if *check {
+		invalid := false
 		for _, l := range enc.Lossy(string(in)) {
-			if l.To == "" {
+			switch {
+			case l.Invalid:
+				invalid = true
+				fmt.Printf("byte %d: invalid UTF-8\n", l.Offset)
+			case l.To == "":
 				fmt.Printf("byte %d: %c U+%04X refused\n", l.Offset, l.Rune, l.Rune)
-			} else {
+			default:
 				fmt.Printf("byte %d: %c U+%04X -> %s\n", l.Offset, l.Rune, l.Rune, l.To)
 			}
+		}
+		if invalid {
+			fmt.Fprintln(os.Stderr, "encoding: invalid UTF-8")
+			os.Exit(1)
 		}
 		return
 	}

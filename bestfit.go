@@ -79,23 +79,32 @@ type Loss struct {
 	Offset int    // byte offset in the input
 	Rune   rune   // the rune in the input
 	To     string // what is written instead; "" when the rune is refused
+	// Invalid marks a byte that is not valid UTF-8: Rune is utf8.RuneError,
+	// To is "", and the encoder returns encoding.ErrInvalidUTF8 there.
+	Invalid bool
 }
 
 // Lossy reports every rune of s that a table replaces or the base refuses,
-// in input order, without encoding s.
+// and every byte that is not valid UTF-8, in input order, without encoding s.
 func (e *Encoding) Lossy(s string) []Loss {
 	var out []Loss
 	enc := e.base.NewEncoder()
-	for i, r := range s {
-		if to, ok := e.Lookup(r); ok {
+	for i, size := 0, 0; i < len(s); i += size {
+		var r rune
+		r, size = utf8.DecodeRuneInString(s[i:])
+		switch to, ok := e.Lookup(r); {
+		case r == utf8.RuneError && size == 1:
+			// A bad or truncated byte; the encoder returns ErrInvalidUTF8 here.
+			out = append(out, Loss{Offset: i, Rune: r, Invalid: true})
+		case ok:
 			if _, err := enc.String(to); err != nil {
 				to = "" // the row's replacement is itself unwritable: the encoder refuses r
 			}
 			out = append(out, Loss{Offset: i, Rune: r, To: to})
-			continue
-		}
-		if _, err := enc.String(string(r)); err != nil {
-			out = append(out, Loss{Offset: i, Rune: r})
+		default:
+			if _, err := enc.String(string(r)); err != nil {
+				out = append(out, Loss{Offset: i, Rune: r})
+			}
 		}
 	}
 	return out

@@ -107,6 +107,10 @@ bestfit cp932 < utf8.txt > sjis.txt
 bestfit -check cp949 < utf8.txt   # what would change or fail, nothing written
 ```
 
+`-check` lists every replaced or refused rune and every byte that is not
+valid UTF-8 (`byte 7: invalid UTF-8`), and exits 1 when there is such a byte,
+as the conversion would.
+
 Exit status 1 and a message naming the rune and byte offset when a rune has
 no row and the base encoding refuses it.
 
@@ -127,6 +131,11 @@ for _, l := range cp932.Encoding.Lossy("café〜😀") {           // audit befo
     fmt.Println(l.Offset, l.Rune, l.To)                        // 3 é "e" / 5 〜 "～" / 8 😀 ""
 }
 ```
+
+A byte that is not valid UTF-8 comes back from `Lossy` as a `Loss` with
+`Invalid` set (`Rune` is `utf8.RuneError`, `To` is empty), which is where the
+encoder would return `encoding.ErrInvalidUTF8`. A genuine U+FFFD in the input
+is reported as a refused rune, `Invalid` false.
 
 `cp932.Encoding` and `cp949.Encoding` are `encoding.Encoding`s, so they work
 with `transform.NewWriter`, `transform.NewReader` and everything else that
